@@ -1,0 +1,46 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui
+  namespace: {{NAMESPACE}}
+spec:
+  selector:
+    matchLabels: 
+      app: ui
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ui
+    spec:
+      containers:
+        - name: ui
+          image: 10.5.35.127:30114/ui_{{BUILD_TYPE}}:{{BUILD_NUMBER}}
+          imagePullPolicy: "Always"
+          ports:
+            - containerPort: 80
+          env:
+            - name: TZ
+              value: Asia/Kolkata            
+      volumes:
+          - name: config-volume
+            configMap:
+              name: ui
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{NAMESPACE}}
+  labels:
+    app: ui
+  name: ui
+spec:
+  ports:
+    - name: ui
+      port: 80
+      targetPort: 80
+      nodePort: {{NODEPORT}}
+  selector:
+    app: ui
+  type: NodePort

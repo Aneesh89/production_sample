@@ -1,0 +1,226 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{NAMESPACE}}
+  name: testsupport
+data:
+  application.properties: |-
+    server.servlet.contextPath=/cctns/testSupport
+
+    spring.application.name=testSupport
+    
+    spring.flyway.check-location = false
+    spring.flyway.locations=classpath:db/migration 
+    spring.flyway.out-of-order=true
+    
+    data.encryption=true
+
+  application-serverdev.properties: |-
+    server.port=9083
+    cas.datasource.jdbcUrl = jdbc:mysql://mysql-primary:6446/cctns_user
+    cas.datasource.username = root
+    cas.datasource.password = Root@123
+    cas.datasource.driverClassName = com.mysql.cj.jdbc.Driver
+    
+    intermediate.datasource.jdbcUrl = jdbc:mysql://mysql-secondary:6447/cctns_user
+    intermediate.datasource.username = root
+    intermediate.datasource.password = Root@123
+    intermediate.datasource.driverClassName = com.mysql.cj.jdbc.Driver
+    
+    db.name = cctns_user
+    
+    spring.redis.host=redis
+    spring.redis.port=6379
+    spring.redis.password= 
+    
+    spring.redis.jedis.pool.max-active=7 
+    spring.redis.jedis.pool.max-idle=7
+    spring.redis.jedis.pool.min-idle=2
+    
+    spring.cache.redis.cache-null-values=false
+    spring.cache.redis.use-key-prefix=true
+    spring.cache.redis.time-to-live=18000000
+    
+    spring.cache.type=redis
+    
+    keycloak.enabled=true
+    keycloak.auth-server-url=http://10.2.63.49:8080/auth
+    keycloak.realm=cctns_cas
+    keycloak.resource=login-app
+    
+    keycloaks.admin.username=admin
+    keycloaks.admin.password=cctns@123
+    
+    
+    spring.flyway.locations=classpath:db/migration
+    spring.flyway.baseline-on-migrate=true
+    spring.flyway.enabled=true
+    spring.flyway.ignore-missing-migrations=true
+    spring.flyway.table=flyway_schema_history_user
+    
+    spring.kafka.producer.bootstrap-servers=kafka1:9092,kafka2:9092,kafka3:9092
+    spring.kafka.producer.transaction-id-prefix=cctnstransaction-${random.uuid}
+    spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
+    spring.kafka.producer.value-serializer=org.apache.kafka.common.serialization.StringSerializer
+    
+    spring.kafka.consumer.bootstrap-servers=kafka1:9092,kafka2:9092,kafka3:9092
+    spring.kafka.consumer.auto-offset-reset=earliest
+    spring.kafka.consumer.enable-auto-commit=false
+    spring.kafka.consumer.properties.isolation.level=read_committed
+    spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+    spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+    
+    kafka.partitions=6
+    kafka.replication=3
+  application-qa.properties: |-
+    server.port=9083
+    cas.datasource.jdbcUrl = jdbc:mysql://mysql-primary/cctns_user
+    cas.datasource.username = root
+    cas.datasource.password = Root@123
+    cas.datasource.driverClassName = com.mysql.cj.jdbc.Driver
+    
+    intermediate.datasource.jdbcUrl = jdbc:mysql://mysql-primary/cctns_user
+    intermediate.datasource.username = root
+    intermediate.datasource.password = Root@123
+    intermediate.datasource.driverClassName = com.mysql.cj.jdbc.Driver
+    
+    db.name = cctns_user
+    
+    spring.redis.host=redis
+    spring.redis.port=6379
+    spring.redis.password= 
+    
+    spring.redis.jedis.pool.max-active=7 
+    spring.redis.jedis.pool.max-idle=7
+    spring.redis.jedis.pool.min-idle=2
+    
+    spring.cache.redis.cache-null-values=false
+    spring.cache.redis.use-key-prefix=true
+    spring.cache.redis.time-to-live=18000000
+    
+    spring.cache.type=redis
+    
+    keycloak.enabled=true
+    keycloak.auth-server-url=http://10.5.35.131:8080/auth
+    keycloak.realm=cctns_cas
+    keycloak.resource=login-app
+    
+    keycloaks.admin.username=admin
+    keycloaks.admin.password=Root@123
+    
+    
+    spring.flyway.locations=classpath:db/migration
+    spring.flyway.baseline-on-migrate=true
+    spring.flyway.enabled=true
+    spring.flyway.ignore-missing-migrations=true
+    spring.flyway.table=flyway_schema_history_user
+    
+    spring.kafka.producer.bootstrap-servers=kafkatest:9092
+    spring.kafka.producer.transaction-id-prefix=cctnstransaction-${random.uuid}
+    spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
+    spring.kafka.producer.value-serializer=org.apache.kafka.common.serialization.StringSerializer
+    
+    spring.kafka.consumer.bootstrap-servers=kafkatest:9092
+    spring.kafka.consumer.auto-offset-reset=earliest
+    spring.kafka.consumer.enable-auto-commit=false
+    spring.kafka.consumer.properties.isolation.level=read_committed
+    spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+    spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+    
+    kafka.partitions=1
+    kafka.replication=1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testsupport
+  namespace: {{NAMESPACE}}
+spec:
+  selector:
+    matchLabels: 
+      app: testsupport
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: testsupport
+    spec:
+      containers:
+        - name: testsupport
+          image: 10.5.35.127:30114/testsupport:{{BUILD_NUMBER}}
+          imagePullPolicy: "Always"
+          resources:
+            requests:
+              memory: "250Mi"
+              cpu: "150m"
+            limits:
+              memory: "450Mi"
+              cpu: "250m"
+          ports:
+            - containerPort: 9083
+          env:
+            - name: TZ
+              value: Asia/Kolkata
+            - name: SPRING_PROFILES_ACTIVE
+              value: "{{ACTIVE_PROFILE}}"
+            - name: JAVA_OPTS
+              value: "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap"
+          volumeMounts:
+            - name: config-volume
+              mountPath: "/config"
+      volumes:
+          - name: config-volume
+            configMap:
+              name: testsupport
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{NAMESPACE}}
+  labels:
+    app: testsupport
+  name: testsupport
+spec:
+  ports:
+    - name: testsupport
+      port: 9083
+      targetPort: 9083
+      nodePort: {{NODEPORT}}
+  selector:
+    app: testsupport
+  type: NodePort
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: testsupport
+  namespace: {{NAMESPACE}}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: testsupport
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: testsupport-memory-scale
+  namespace: {{NAMESPACE}}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: testsupport
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageValue: 400Mi
+

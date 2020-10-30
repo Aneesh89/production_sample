@@ -1,0 +1,15 @@
+# stage: 1
+FROM 10.5.35.127:30114/node:12.19.0 as react-build
+WORKDIR /app
+COPY . ./
+RUN npm ci
+RUN npm run build:development
+
+
+
+# stage; 2
+FROM 10.5.35.127:30114/nginx:1.18.0
+#COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=react-build /app/build /usr/share/nginx/html/
+EXPOSE 9000
+CMD ["nginx", "-g"]

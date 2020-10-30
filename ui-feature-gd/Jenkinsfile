@@ -1,0 +1,87 @@
+pipeline {
+    agent any
+	
+	environment {
+		REGISTRY_HOST = "10.5.35.127:30114"
+	}
+    
+    stages {
+		stage ('Node test'){
+			steps{
+                nodejs(nodeJSInstallationName: 'NodeJS') {	
+                    sh 'npm config ls'
+                }
+			}
+			
+		}
+		stage('Installation'){
+			steps {	
+				nodejs(nodeJSInstallationName: 'NodeJS') {			
+                    sh '''
+						npm ci
+					'''     
+				}                           
+            }
+		}
+		stage('SonarQube') {
+            steps {
+				nodejs(nodeJSInstallationName: 'NodeJS') {
+            	sh '''
+					npm run test
+				'''
+				}
+				}
+            }        
+
+        stage('Build') {
+            steps {
+				nodejs(nodeJSInstallationName: 'NodeJS') {
+                sh '''
+					npm run build:${BUILD_TYPE}
+				'''
+				}
+            }
+        }
+                
+        stage('Building image') {
+	      steps{
+	        script {
+	          sh '''
+	          	docker build --tag $REGISTRY_HOST/ui_${BUILD_TYPE}:${BUILD_NUMBER} .
+	          '''
+	        }
+	      }
+	    }
+	    stage('Push Image') {
+	      steps{
+	        script {
+	        	sh 'docker push $REGISTRY_HOST/ui_${BUILD_TYPE}:${BUILD_NUMBER}'
+	        }
+	      }
+	    }
+	    stage('Deploy to Kubernetes'){
+			steps{
+				sh "chmod +x changeTag.sh"
+				sh "./changeTag.sh ${BUILD_NUMBER} ${BUILD_TYPE} ${namespace} ${nodeport}"
+				  
+				   script{
+					   try{
+						 sh "kubectl apply -f deployments5.yml"
+					   }catch(ex){
+						 sh "kubectl create -f deployments5.yml"
+					   }
+					}
+			
+		   }
+		}
+	    stage('Cleanup'){
+		    steps{
+		        sh '''
+		        docker rmi $(docker images -f 'dangling=true' -q) || true
+		        docker rmi $(docker images | sed 1,2d | awk '{print $3}') || true
+		        '''
+		    }
+		}
+	    
+    }   
+}

@@ -1,0 +1,33 @@
+.fir_icons
+{
+  display: flex;
+  flex-direction: row;
+  text-align: center;
+  justify-content: center;
+}
+.fir-icon-desc
+{
+  min-height:3em;
+}
+
+.fir-active
+{
+ zoom:110%;
+ box-shadow:
+ 0 2.8px 2.2px rgba(0, 0, 0, 0.034),
+ 0 6.7px 5.3px rgba(0, 0, 0, 0.048),
+ 0 12.5px 10px rgba(0, 0, 0, 0.06),
+ 0 12.3px 12.9px rgba(0, 0, 0, 0.052),
+ 0 21.8px 15.4px rgba(0, 0, 0, 0.050),
+ 0 40px 20px rgba(0, 0, 0, 0.02)
+;
+}
+.fir-card
+{
+  background:#f8f9fa;
+}
+.btn-padding
+{
+  position:relative;
+  height:"35px";
+}

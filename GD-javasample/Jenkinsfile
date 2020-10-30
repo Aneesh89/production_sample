@@ -1,0 +1,59 @@
+pipeline {
+    agent any
+	
+	environment {
+		REGISTRY_HOST = "10.5.35.127:30114"
+	}
+    
+    stages {
+        stage('Build') {
+            steps {
+                sh '''
+					mvn clean package -DskipTests -DactiveProfile=${profile}
+				'''
+            }
+        }
+        stage('Building image') {
+	      steps{
+	        script {
+	          sh '''
+	          	docker build --tag $REGISTRY_HOST/testsupport:${BUILD_NUMBER} .
+	          '''
+	        }
+	      }
+	    }
+	    stage('Push Image') {
+	      steps{
+	        script {
+	        	sh 'docker push $REGISTRY_HOST/testsupport:${BUILD_NUMBER}'
+	        }
+	      }
+	    }
+	    stage('Deploy to Kubernetes'){
+			steps{
+				sh "chmod +x changeTag.sh"
+				sh "./changeTag.sh ${BUILD_NUMBER} ${profile} ${namespace} ${nodeport}"
+	
+				  
+				   script{
+					   try{
+						 sh "kubectl apply -f deployments5.yml"
+					   }catch(ex){
+						 sh "kubectl create -f deployments5.yml"
+					   }
+					}
+			
+		   }
+		}
+	    stage('Cleanup'){
+		    steps{
+		        sh '''
+		        docker rmi $(docker images -f 'dangling=true' -q) || true
+		        docker rmi $(docker images | sed 1,2d | awk '{print $3}') || true
+		        '''
+		    }
+		}
+	    
+    }   
+}
+
